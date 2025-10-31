@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════════════════
 //           ☠️  REPUTATION KILLER JS ENGAGED! ☠️
-//      MASS REPORTER · ULTRA-FAST SCROLL · MODAL RECOVER · BACK + CLOSE
+//      AUTO REPORTER · ULTRA-FAST SCROLL · MODAL RECOVER · BACK + CLOSE
 // ════════════════════════════════════════════════════════════════════════════════════
 
 (function() {
@@ -69,7 +69,7 @@
   
   console.log('%c[REPUTATION KILLER] 💡 Commands: stopScroll() | resetKillCount()', 'color: #00ffff; font-weight: bold;');
 
-  // ======== MASS REPORTING ROUTINE ========
+  // ======== AUTO REPORTING ROUTINE ========
   const TEST_MODE = false;
 
   // Get initial count from localStorage
