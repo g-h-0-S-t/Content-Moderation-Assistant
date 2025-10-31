@@ -68,7 +68,7 @@ The Reputation Killer opens every post on a user's Facebook wall, navigates the 
 2. **Open DevTools Console** (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I` on Mac).
 3. **Paste the entire Reputation Killer script** into the console and press `Enter`.
 4. **Watch the annihilation unfold** in real-time as posts are mass-reported.
-   - To stop the scroll prematurely: `clearInterval(startScroll);`
+   - To stop the scroll prematurely: `stopScroll()`
    - Monitor destruction count and recovery actions in the console logs.
 
 ### Example Console Output
