@@ -153,15 +153,21 @@
   }
 
   async function killerLoop() {
-    let cycles = 0, total = 0;
+    let cycles = 0;
+    let totalDestroyed = 0; // ← PERSISTENT COUNTER (won't reset when DOM changes)
+    
     while (true) {
       let buttons = Array.from(document.querySelectorAll('[aria-label="Actions for this post"]:not([data-processed])'));
       if (buttons.length > 0) {
-        for (let i = 0; i < buttons.length; ++i)
-          await processPost(buttons[i], total + i + 1);
-        total = document.querySelectorAll('[aria-label="Actions for this post"][data-processed]').length;
-        console.log(`%c[☠️] Cycle #${++cycles} | Total destroyed: ${total}`, 'color: #ff0000; font-weight: bold;');
-        if (TEST_MODE && total >= 1) break;
+        for (let i = 0; i < buttons.length; ++i) {
+          await processPost(buttons[i], totalDestroyed + i + 1);
+        }
+        // Count how many were just processed in this batch
+        const newlyProcessed = buttons.length;
+        totalDestroyed += newlyProcessed; // ← INCREMENT PERSISTENT COUNTER
+        
+        console.log(`%c[☠️] Cycle #${++cycles} | Total destroyed: ${totalDestroyed}`, 'color: #ff0000; font-weight: bold;');
+        if (TEST_MODE && totalDestroyed >= 1) break;
       } else {
         await flushActiveModal(`BG-${cycles}`, 1);
         await new Promise(r => setTimeout(r, 500));
