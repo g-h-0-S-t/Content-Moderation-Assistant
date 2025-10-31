@@ -1,44 +1,121 @@
-Reputation Killer JS ☠️🦴
-The Ultimate Mass Reporter Script for Social Platforms
+# The Reputation Killer ☠️
 
-Introduction
-Reputation Killer JS is a browser automation powerhouse designed for ultra-fast and reliable mass reporting of objectionable content on social platforms with one goal: destroy the reputation of posts violating platform rules. Engineered for speed and resilience, it scrolls, detects, and submits reports at breakneck pace with robust error handling—ensuring no post can escape its wrath.
+**My New Weapon: A Hate Speech Mass Reporter for Facebook**
 
-This script is ideal for moderators, automation enthusiasts, or anyone needing aggressive reporting automation with style. Its console output features an ominous skull & crossbones banner, detailed logs, and advanced self-recovery that never stalls.
+---
 
-☠️ Warning:
-This tool operates infinitely and will report every post in view. Use responsibly!
+## Introducing My Arsenal's Latest Addition
 
-Features
-Skull & Crossbones ASCII Console Banner - Shows off attitude and alerts you to script activation.
+I present to you **The Reputation Killer** — a relentless, automated hate speech reporting script born from frustration with unchecked toxicity on social platforms. When I encounter hate-mongers spreading venom on Facebook, I don't just scroll past. I deploy this weapon on their profile wall and watch as every hate-filled post gets systematically reported and dismantled.
 
-Ultra-Fast Auto-Scrolling - Moves through feeds with maximum speed to load all posts instantly.
+This isn't a polite nudge to moderators. This is **scorched earth automation**.
 
-Robust Modal/Popup Handling - Force-closes stuck dialogs, retries when sub-types aren't available, and escapes UI stalls.
+**The Reputation Killer is:**
+- **Non-lenient**: Zero tolerance. Every post gets scrutinized and reported.
+- **Ruthless**: No second chances. No mercy. No escape.
+- **Relentless**: Infinite loops, auto-retries, modal force-closing — it never stops until the job is done.
+- **Surgical**: Precision-targeting hate speech categories with sub-type drilling and error recovery.
+- **Unstoppable**: Stuck dialogs? Wrong menu loaded? It self-corrects, navigates back, and tries again.
 
-Back Navigation & Retry Logic - Automatically clicks "Back" and retries chains if the wrong options are loaded.
+Built with browser automation mastery, it leverages ultra-fast DOM traversal, asynchronous task queuing, aggressive scroll injection, and modal state-machine recovery. This script doesn't just report — it **eradicates**.
 
-Full Recovery Mode - Attempts to complete any unfinished reporting in open modals from previous attempts.
+When you run The Reputation Killer on a hate-spreader's profile, you're not playing defense. You're going on the offensive.
 
-Indefinite Infinite Loop - Keeps checking, scrolling, and reporting until every post is processed.
+---
 
-Visual Console Logging - Color-coded progress, recovery, and destruction logs for maximum clarity.
+## What It Does
 
-Usage
-Open the social platform’s feed in your browser (e.g., Facebook, Twitter, Instagram).
+The Reputation Killer opens every post on a user's Facebook wall, navigates the reporting UI with machine precision, selects "Hateful Speech → Promoting Hate → Posting Hateful Speech," submits the report, and moves to the next target — all in milliseconds per post. It scrolls infinitely to load the entire feed, handles UI errors with retry logic, and logs every annihilation to your browser console in dramatic, color-coded glory.
 
-Press F12 or open the developer console on your browser.
+**Target Acquired. Reputation Destroyed.**
 
-Copy and paste the full reputation-killer.js script into the console and hit Enter.
+---
 
-Watch the feed get reported at lightning speed!
+## Features
 
-To stop the scroll, enter clearInterval(startScroll); in the console.
+- **Blazing Fast Execution**: Ultra-aggressive scrolling (`setInterval` at 1ms) loads thousands of posts instantly.
+- **Modal Recovery Engine**: Auto-detects stuck dialogs and force-closes using Back/Close/Escape sequences.
+- **Smart Retry Logic**: Wrong category selected? It navigates back and retries up to 2 times per post.
+- **Infinite Loop Architecture**: Runs indefinitely until every post on the wall is reported.
+- **IIFE Encapsulation**: Zero global namespace pollution, no conflicts with existing page scripts.
+- **Color-Coded Battle Logs**: Real-time console output shows every destroyed post, retry, and recovery action.
+- **Skull & Crossbones Banner**: ASCII art header announces script activation with style.
 
-Pro Tips
-For moderate speed, you can change window.scrollBy(0, 1000000) and scroll interval from 1 to a less aggressive value.
+---
 
-Stop the automation anytime by reloading the page.
+## Technical Specs
 
-Disclaimer
-This script is provided for automation enthusiasts and research purposes. Use at your own risk and in accordance with the terms of service of the respective platform. The authors are not responsible for misuse or violation of platform policies.
+- **Language**: Vanilla JavaScript (ES6+)
+- **Execution Model**: Immediately Invoked Function Expression (IIFE) with async/await task queue
+- **DOM Selectors**: ARIA label targeting for accessibility-compliant UI automation
+- **Error Handling**: Multi-tier retry with exponential fallback (Back → Close → Escape)
+- **Scroll Strategy**: Infinite viewport injection via `window.scrollBy(0, 1000000)` @ 1ms intervals
+- **State Management**: DOM attribute marking (`data-processed`) prevents duplicate processing
+- **Target Platform**: Facebook (Web) — Mobile and other platforms coming soon
+
+---
+
+## Usage
+
+### Prerequisites
+- Desktop browser (Chrome, Firefox, Edge recommended)
+- Facebook account with reporting permissions
+- DevTools console access
+
+### Deployment
+
+1. **Navigate to the hate-spreader's Facebook profile.**
+2. **Open DevTools Console** (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I` on Mac).
+3. **Paste the entire Reputation Killer script** into the console and press `Enter`.
+4. **Watch the annihilation unfold** in real-time as posts are mass-reported.
+   - To stop the scroll prematurely: `clearInterval(startScroll);`
+   - Monitor destruction count and recovery actions in the console logs.
+
+### Example Console Output
+
+```
+☠️ REPUTATION KILLER JS ENGAGED! ☠️
+[☠️] Cycle #7 | Total destroyed: 511
+⬅️ BACK clicked - retrying
+❌ CLOSE clicked - forcing modal close
+☠️ REPUTATION DESTROYED #512
+```
+
+---
+
+## Roadmap
+
+- **Platform Expansion**: Instagram, Twitter/X, Reddit, LinkedIn hate speech reporters
+- **Headless Mode**: Puppeteer/Playwright integration for background execution
+- **GUI Dashboard**: Electron-based control panel with real-time stats and targeting
+- **Report Analytics**: Export CSV logs of reported posts with timestamps and categories
+- **Multi-Profile Targeting**: Batch processing for coordinated reporting campaigns
+
+---
+
+## Disclaimer
+
+The Reputation Killer is an automation tool for combating hate speech and assisting content moderation. It is designed for **ethical use by individuals reporting genuinely harmful content** in accordance with Facebook's Community Standards.
+
+**Use at your own risk.** Ensure compliance with platform policies and local laws. Mass reporting of non-violating content may result in account suspension. The author assumes no liability for misuse, abuse, or consequences arising from deployment of this script.
+
+**This tool does not replace human judgment.** Verify content violates platform rules before deploying.
+
+---
+
+## Philosophy
+
+Hate speech thrives in silence and inaction. The Reputation Killer is my answer to those who weaponize social platforms to spread bigotry, violence, and harm.
+
+**Every line of code is a line of defense.**  
+**Every execution is an act of resistance.**  
+**Every report is a step toward a cleaner internet.**
+
+When moderation fails, automation prevails.
+
+---
+
+**Because every hate post deserves annihilation.**  
+**Be legendary. Be relentless. Be the reckoning.**
+
+☠️ *The Reputation Killer — Justice, Automated.* 🦴
