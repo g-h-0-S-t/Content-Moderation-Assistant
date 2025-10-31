@@ -1,6 +1,6 @@
 # The Reputation Killer ☠️
 
-**My New Weapon: A Hate Speech Mass Reporter for Facebook**
+**My New Weapon: A Hate Speech Auto Reporter for Facebook**
 
 ---
 
@@ -67,7 +67,7 @@ The Reputation Killer opens every post on a user's Facebook wall, navigates the 
 1. **Navigate to the hate-spreader's Facebook profile.**
 2. **Open DevTools Console** (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I` on Mac).
 3. **Paste the entire Reputation Killer script** into the console and press `Enter`.
-4. **Watch the annihilation unfold** in real-time as posts are mass-reported.
+4. **Watch the annihilation unfold** in real-time as posts are auto-reported.
    - To stop the scroll prematurely: `stopScroll()`
    - Monitor destruction count and recovery actions in the console logs.
 
@@ -97,7 +97,7 @@ The Reputation Killer opens every post on a user's Facebook wall, navigates the 
 
 The Reputation Killer is an automation tool for combating hate speech and assisting content moderation. It is designed for **ethical use by individuals reporting genuinely harmful content** in accordance with Facebook's Community Standards.
 
-**Use at your own risk.** Ensure compliance with platform policies and local laws. Mass reporting of non-violating content may result in account suspension. The author assumes no liability for misuse, abuse, or consequences arising from deployment of this script.
+**Use at your own risk.** Ensure compliance with platform policies and local laws. Auto reporting of non-violating content may result in account suspension. The author assumes no liability for misuse, abuse, or consequences arising from deployment of this script.
 
 **This tool does not replace human judgment.** Verify content violates platform rules before deploying.
 
