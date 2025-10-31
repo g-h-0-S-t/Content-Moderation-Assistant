@@ -48,8 +48,16 @@
 
   console.log('%c[REPUTATION KILLER] ☠️ Ultra-Fast Modal Recovery Edition.', 'color: #ff0000; font-weight: bold; font-size: 14px;');
 
-  // ULTRA-FAST SCROLL CODE
-  var startScroll = setInterval(function(){ window.scrollBy(0, 1000000); }, 1);
+  // ULTRA-FAST SCROLL CODE - Exposed to window for manual control
+  window.startScroll = setInterval(function(){ window.scrollBy(0, 1000000); }, 1);
+  
+  // STOP SCROLL FUNCTION - Exposed as global switch
+  window.stopScroll = function() {
+    clearInterval(window.startScroll);
+    console.log('%c⏸️ SCROLL STOPPED', 'color: #ff0000; font-weight: bold; font-size: 14px;');
+  };
+  
+  console.log('%c[REPUTATION KILLER] 💡 To stop scrolling, type: stopScroll()', 'color: #00ffff; font-weight: bold;');
 
   // ======== MASS REPORTING ROUTINE ========
   const TEST_MODE = false;
