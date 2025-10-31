@@ -57,10 +57,41 @@
     console.log('%c⏸️ SCROLL STOPPED', 'color: #ff0000; font-weight: bold; font-size: 14px;');
   };
   
-  console.log('%c[REPUTATION KILLER] 💡 To stop scrolling, type: stopScroll()', 'color: #00ffff; font-weight: bold;');
+  // RESET COUNTER FUNCTION - Exposed for manual reset
+  window.resetKillCount = function() {
+    try {
+      localStorage.setItem('reputationKillerCount', '0');
+      console.log('%c🔄 KILL COUNT RESET TO 0', 'color: #ffaa00; font-weight: bold; font-size: 14px;');
+    } catch(e) {
+      console.log('%c⚠️ localStorage not available, counter reset', 'color: #ffaa00; font-weight: bold;');
+    }
+  };
+  
+  console.log('%c[REPUTATION KILLER] 💡 Commands: stopScroll() | resetKillCount()', 'color: #00ffff; font-weight: bold;');
 
   // ======== MASS REPORTING ROUTINE ========
   const TEST_MODE = false;
+
+  // Get initial count from localStorage
+  let totalDestroyed = 0;
+  try {
+    const saved = localStorage.getItem('reputationKillerCount');
+    totalDestroyed = saved ? parseInt(saved, 10) : 0;
+    if (totalDestroyed > 0) {
+      console.log(`%c[REPUTATION KILLER] 📊 Resuming from previous session: ${totalDestroyed} already destroyed`, 'color: #00ffff; font-weight: bold;');
+    }
+  } catch(e) {
+    console.log('%c[REPUTATION KILLER] ⚠️ localStorage not available, using in-memory counter', 'color: #ffaa00; font-weight: bold;');
+  }
+
+  // Save count to localStorage
+  function saveCount(count) {
+    try {
+      localStorage.setItem('reputationKillerCount', count.toString());
+    } catch(e) {
+      // Silent fail if localStorage not available
+    }
+  }
 
   // Utility: Wait and click an element containing specific text
   async function waitForAndClick(selector, matchText = null, timeout = 1100) {
@@ -146,25 +177,27 @@
     button.click();
     await new Promise(r => setTimeout(r, 180));
 
-    if (!await waitForAndClick('div:not([hidden]) [aria-label="Feed story"] [role="menuitem"] span', 'report', 1000)) return;
+    if (!await waitForAndClick('div:not([hidden]) [aria-label="Feed story"] [role="menuitem"] span', 'report', 1000)) return false;
 
     await new Promise(r => setTimeout(r, 180));
-    await flushActiveModal(id, 2);
+    const success = await flushActiveModal(id, 2);
+    return success;
   }
 
   async function killerLoop() {
     let cycles = 0;
-    let totalDestroyed = 0; // ← PERSISTENT COUNTER (won't reset when DOM changes)
     
     while (true) {
       let buttons = Array.from(document.querySelectorAll('[aria-label="Actions for this post"]:not([data-processed])'));
       if (buttons.length > 0) {
+        let successCount = 0;
         for (let i = 0; i < buttons.length; ++i) {
-          await processPost(buttons[i], totalDestroyed + i + 1);
+          const success = await processPost(buttons[i], totalDestroyed + successCount + 1);
+          if (success) successCount++;
         }
-        // Count how many were just processed in this batch
-        const newlyProcessed = buttons.length;
-        totalDestroyed += newlyProcessed; // ← INCREMENT PERSISTENT COUNTER
+        
+        totalDestroyed += successCount;
+        saveCount(totalDestroyed); // Save to localStorage
         
         console.log(`%c[☠️] Cycle #${++cycles} | Total destroyed: ${totalDestroyed}`, 'color: #ff0000; font-weight: bold;');
         if (TEST_MODE && totalDestroyed >= 1) break;
