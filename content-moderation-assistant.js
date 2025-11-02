@@ -1,7 +1,6 @@
 javascript:(function() {
   'use strict';
 
-  /* Configuration */
   const TEST_MODE = false;
 
   const REPORTING_PATH = {
@@ -34,6 +33,7 @@ javascript:(function() {
   const TIMING = {
     afterClickAll: 1000,
     betweenSteps: 1200,
+    afterDone: 2000,
     finalWait: 2500,
     dialogCleanup: 3000,
     scrollForContent: 600,
@@ -51,7 +51,6 @@ javascript:(function() {
     processed: 'data-processed'
   };
 
-  /* Performance tracking */
   const stats = {
     startTime: Date.now(),
     totalClicks: 0,
@@ -62,10 +61,8 @@ javascript:(function() {
     cycleCount: 0
   };
 
-  /* Theme state */
   let isDarkMode = true;
 
-  /* Create overlay UI */
   function createOverlay() {
     const overlay = document.createElement('div');
     overlay.id = 'moderation-assistant-overlay';
@@ -73,7 +70,6 @@ javascript:(function() {
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
-        /* Dark Mode (Default) */
         :root {
           --bg-primary: #1a1d29;
           --bg-secondary: #0f1419;
@@ -95,7 +91,6 @@ javascript:(function() {
           --log-cycle-bg: rgba(168, 85, 247, 0.1);
         }
         
-        /* Light Mode */
         .light-mode {
           --bg-primary: #ffffff;
           --bg-secondary: #f9fafb;
@@ -584,7 +579,6 @@ javascript:(function() {
     return overlay;
   }
 
-  /* UI Logger */
   const UILogger = {
     log(message, type = 'info', isLoading = false) {
       const logContainer = document.getElementById('moderation-assistant-log');
@@ -766,33 +760,98 @@ javascript:(function() {
     return clicked;
   }
 
+  /**
+   * Enhanced report menu click handler supporting multiple menu text variations.
+   */
+  function clickAllReportMenus() {
+    const reportMenuVariations = [
+      'report post',
+      'report photo',
+      'find support or report',
+      'find support or report video'
+    ];
+    
+    const items = document.querySelectorAll(SELECTORS.menuItemSpan);
+    let clicked = 0;
+    
+    for (let item of items) {
+      const ariaHidden = item.getAttribute('aria-hidden') === 'true';
+      if (ariaHidden) continue;
+      
+      const itemText = (item.innerText || item.textContent || '').trim().toLowerCase();
+      
+      const matchesReportMenu = reportMenuVariations.some(variation => 
+        itemText.includes(variation)
+      );
+      
+      if (matchesReportMenu) {
+        try {
+          item.click();
+          clicked++;
+          stats.totalClicks++;
+        } catch(e) {
+          try {
+            const parent = item.closest('[role="listitem"]') || item.closest('[role="menuitem"]');
+            if (parent) {
+              parent.click();
+              clicked++;
+              stats.totalClicks++;
+            }
+          } catch(e2) { }
+        }
+      }
+    }
+    
+    return clicked;
+  }
+
   async function wait(ms) {
     await new Promise(r => setTimeout(r, ms));
   }
 
-  /* Close all open dialogs */
   async function closeAllDialogs() {
-    const loadingEntry = UILogger.loading('Closing all dialogs');
+    const loadingEntry = UILogger.loading('Ensuring all dialogs closed');
     
-    const dialogs = document.querySelectorAll(SELECTORS.dialog);
     let closedCount = 0;
+    let attempts = 0;
+    const maxAttempts = 5;
     
-    for (let dialog of dialogs) {
-      const closeBtn = dialog.querySelector(SELECTORS.closeButton);
-      if (closeBtn) {
-        try {
-          closeBtn.click();
-          closedCount++;
-        } catch(e) { }
+    while (attempts < maxAttempts) {
+      const dialogs = document.querySelectorAll(SELECTORS.dialog);
+      
+      if (dialogs.length === 0) {
+        UILogger.updateLoading(loadingEntry, 'All dialogs confirmed closed', true, 'success');
+        return;
       }
+      
+      for (let dialog of dialogs) {
+        const closeBtn = dialog.querySelector(SELECTORS.closeButton);
+        if (closeBtn) {
+          try {
+            closeBtn.click();
+            closedCount++;
+          } catch(e) { }
+        }
+        
+        const doneBtn = dialog.querySelector(SELECTORS.doneButton);
+        if (doneBtn) {
+          try {
+            doneBtn.click();
+            closedCount++;
+          } catch(e) { }
+        }
+      }
+      
+      for (let i = 0; i < 3; i++) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+        document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape', keyCode: 27, bubbles: true }));
+      }
+      
+      await wait(1500);
+      attempts++;
     }
     
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    
-    await wait(1000);
-    
-    UILogger.updateLoading(loadingEntry, `${closedCount} dialogs closed`, true, 'success');
+    UILogger.updateLoading(loadingEntry, `${closedCount} dialogs closed (${attempts} attempts)`, true, 'success');
   }
 
   async function scrollForNewContent() {
@@ -845,7 +904,7 @@ javascript:(function() {
     await wait(TIMING.afterClickAll);
     
     loadingEntry = UILogger.loading('Opening report dialogs');
-    const reportClicked = clickAll(SELECTORS.menuItemSpan, 'report');
+    const reportClicked = clickAllReportMenus();
     UILogger.updateLoading(loadingEntry, `${reportClicked} dialogs opened`, true, 'success');
     UILogger.updateProgress(28);
     await wait(TIMING.betweenSteps);
@@ -883,16 +942,16 @@ javascript:(function() {
     loadingEntry = UILogger.loading('Completing reports');
     const doneClicked = clickAll(SELECTORS.doneButton);
     UILogger.updateLoading(loadingEntry, `${doneClicked} reports completed`, true, 'success');
-    UILogger.updateProgress(100);
-    await wait(TIMING.finalWait);
-    
-    /* CRITICAL: Close all dialogs before proceeding */
-    await closeAllDialogs();
-    await wait(TIMING.dialogCleanup);
+    UILogger.updateProgress(95);
+    await wait(TIMING.afterDone);
     
     totalProcessed += buttonsClicked;
     stats.successCount += buttonsClicked;
     UILogger.updateStats(totalProcessed, currentCycle, buttonsClicked, 'ACTIVE');
+    
+    UILogger.updateProgress(100);
+    await closeAllDialogs();
+    await wait(TIMING.dialogCleanup);
     
     if (buttonsClicked > 0) {
       UILogger.success(`Cycle complete: ${buttonsClicked} posts | Total: ${totalProcessed}`);
