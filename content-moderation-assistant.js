@@ -1,9 +1,4 @@
-// ════════════════════════════════════════════════════════════════════════════════════
-//           🛡️  CONTENT MODERATION ASSISTANT ACTIVE
-//      AUTO REPORTER · FAST SCROLL · MODAL RECOVERY · NAVIGATION CONTROLS
-// ════════════════════════════════════════════════════════════════════════════════════
-
-(function() {
+javascript:(function() {
   'use strict';
 
   console.clear();
@@ -15,16 +10,16 @@
 
   console.log('%c[MODERATION ASSISTANT] 🛡️ Enhanced Modal Recovery Edition.', 'color: #008080; font-weight: bold; font-size: 14px;');
 
-  // FAST SCROLL CODE - Exposed to window for manual control
+  /* FAST SCROLL CODE - Exposed to window for manual control */
   window.startScroll = setInterval(function(){ window.scrollBy(0, 1000000); }, 1);
   
-  // STOP SCROLL FUNCTION - Exposed as global control
+  /* STOP SCROLL FUNCTION - Exposed as global control */
   window.stopScroll = function() {
     clearInterval(window.startScroll);
     console.log('%c⏸️ SCROLL STOPPED', 'color: #008080; font-weight: bold; font-size: 14px;');
   };
   
-  // RESET COUNTER FUNCTION - Exposed for manual reset
+  /* RESET COUNTER FUNCTION - Exposed for manual reset */
   window.resetProcessCount = function() {
     try {
       localStorage.setItem('moderationAssistantCount', '0');
@@ -36,10 +31,10 @@
   
   console.log('%c[MODERATION ASSISTANT] 💡 Commands: stopScroll() | resetProcessCount()', 'color: #00aaaa; font-weight: bold;');
 
-  // ======== AUTO REPORTING ROUTINE ========
+  /* ======== AUTO REPORTING ROUTINE ======== */
   const TEST_MODE = false;
 
-  // Get initial count from localStorage
+  /* Get initial count from localStorage */
   let totalProcessed = 0;
   try {
     const saved = localStorage.getItem('moderationAssistantCount');
@@ -51,16 +46,16 @@
     console.log('%c[MODERATION ASSISTANT] ⚠️ localStorage not available, using in-memory counter', 'color: #0088aa; font-weight: bold;');
   }
 
-  // Save count to localStorage
+  /* Save count to localStorage */
   function saveCount(count) {
     try {
       localStorage.setItem('moderationAssistantCount', count.toString());
     } catch(e) {
-      // Silent fail if localStorage not available
+      /* Silent fail if localStorage not available */
     }
   }
 
-  // Utility: Wait and click an element containing specific text
+  /* Utility: Wait and click an element containing specific text */
   async function waitForAndClick(selector, matchText = null, timeout = 1100) {
     const start = Date.now();
     while (Date.now() - start < timeout) {
@@ -76,7 +71,7 @@
     return null;
   }
 
-  // Modal utility: Try [Back], then [Close], then [Escape]
+  /* Modal utility: Try [Back], then [Close], then [Escape] */
   async function clickBackOrClose() {
     let didNavigate = false;
     const backBtn = document.querySelector('[aria-label="Back"]');
@@ -98,14 +93,14 @@
     return didNavigate;
   }
 
-  // Process reporting flow with retry and navigation recovery
+  /* Process reporting flow with retry and navigation recovery */
   async function processReportingFlow(id = '', maxRetries = 2) {
     let successful = false, retryCount = 0;
     while (retryCount <= maxRetries && document.querySelector('[aria-labelledby="dialog_title"]')) {
       if (retryCount > 0)
         console.log(`%c♻️ Retry attempt ${retryCount} for #${id}`, 'color: #0088aa; font-weight: bold;');
 
-      // Navigate through reporting categories
+      /* Navigate through reporting categories */
       let categoryStep1 = await waitForAndClick('[aria-labelledby="dialog_title"] [role="listitem"] span', 'hate', 1000);
       if (!categoryStep1) { await clickBackOrClose(); retryCount++; continue; }
       await new Promise(r => setTimeout(r, 180));
@@ -118,7 +113,7 @@
       if (!categoryStep3) { await clickBackOrClose(); retryCount++; continue; }
       await new Promise(r => setTimeout(r, 80));
 
-      // Submit report
+      /* Submit report */
       let submit = await waitForAndClick('[aria-label="Submit"]', null, 800);
       await new Promise(r => setTimeout(r, 80));
       let next = await waitForAndClick('[aria-label="Next"]', null, 800);
@@ -166,7 +161,7 @@
         }
         
         totalProcessed += successCount;
-        saveCount(totalProcessed); // Save to localStorage
+        saveCount(totalProcessed); /* Save to localStorage */
         
         console.log(`%c[📊] Cycle #${++cycles} | Total processed: ${totalProcessed}`, 'color: #008080; font-weight: bold;');
         if (TEST_MODE && totalProcessed >= 1) break;
@@ -177,7 +172,7 @@
     }
   }
 
-  // START THE ASSISTANT
+  /* START THE ASSISTANT */
   processingLoop();
 
 })();
