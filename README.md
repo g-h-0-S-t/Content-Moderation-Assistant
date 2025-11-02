@@ -16,6 +16,7 @@ This script automates the manual clicking process, saving time when reporting mu
 - **Thorough**: Systematically reviews content on profile walls
 - **Precise**: Targets specific violation categories through Facebook's native reporting flow
 - **Self-Correcting**: Handles modal dialogs and navigation errors automatically
+- **Session Persistence**: Remembers progress across browser sessions using localStorage
 
 Built with modern JavaScript and browser automation techniques, it features asynchronous task management, intelligent DOM traversal, automatic scroll loading, and modal state recovery.
 
@@ -35,9 +36,12 @@ The script navigates through posts on a Facebook profile, opens the reporting in
 - **Error Recovery**: Automatically handles stuck dialogs and UI inconsistencies
 - **Smart Retry System**: Reprocesses items if incorrect options are selected
 - **Continuous Operation**: Runs until all loaded content is processed
+- **Session Persistence**: Remembers processed count across browser restarts
+- **Manual Controls**: Expose `stopScroll()` and `resetProcessCount()` functions
 - **Isolated Execution**: IIFE pattern prevents conflicts with page scripts
 - **Detailed Logging**: Console output tracks progress and actions
 - **Visual Feedback**: ASCII banner and formatted logs for monitoring
+- **Bookmarklet Support**: One-click activation from bookmarks bar
 
 ---
 
@@ -49,6 +53,7 @@ The script navigates through posts on a Facebook profile, opens the reporting in
 - **Error Handling**: Multi-tier retry with fallback navigation (Back → Close → Escape)
 - **Scroll Implementation**: Viewport manipulation via `window.scrollBy()` with interval control
 - **State Tracking**: DOM attributes (`data-processed`) prevent duplicate operations
+- **Persistence**: localStorage for cross-session counter maintenance
 - **Platform**: Facebook Web Interface
 
 ---
@@ -58,80 +63,60 @@ The script navigates through posts on a Facebook profile, opens the reporting in
 ### Requirements
 - Desktop web browser (Chrome, Firefox, Edge, or Safari)
 - Active Facebook account
-- Browser Developer Tools access
+- Browser Developer Tools access (Console Method) OR Bookmarks Bar (Bookmarklet Method)
 
-### Installation Steps
+---
+
+### Method 1: Bookmarklet (Recommended)
+
+**One-click activation from your bookmarks bar**
+
+#### Chrome / Edge / Brave:
+1. Press **Ctrl+Shift+O** (Windows) or **Cmd+Option+B** (Mac) to open Bookmarks Manager
+2. Click **"⋮"** (three dots) → **"Add new bookmark"**
+3. **Name:** `🛡️ Moderation Assistant`
+4. **URL:** Copy and paste the bookmarklet code from `bookmarklet.js`
+5. Click **Save**
+
+#### Firefox:
+1. Press **Ctrl+Shift+B** to show Bookmarks Toolbar
+2. Right-click toolbar → **"New Bookmark"**
+3. **Name:** `🛡️ Moderation Assistant`
+4. **Location:** Copy and paste the bookmarklet code from `bookmarklet.js`
+5. Click **Add**
+
+#### Safari:
+1. Show Favorites Bar: **View** → **Show Favorites Bar**
+2. Drag any link to Favorites Bar (temporary placeholder)
+3. Right-click the bookmark → **Edit Address**
+4. Replace URL with the bookmarklet code from `bookmarklet.js`
+5. Rename to `🛡️ Moderation Assistant`
+6. Save
+
+#### Using the Bookmarklet:
+1. **Navigate to the target Facebook profile**
+2. **Click the bookmarklet** from your bookmarks bar
+3. **Monitor progress** through console logs (press `F12` to open Developer Tools)
+4. Use console commands:
+   - `stopScroll()` - Stop auto-scrolling
+   - `resetProcessCount()` - Reset the counter
+
+---
+
+### Method 2: Developer Console
+
+**Traditional manual execution**
 
 1. **Navigate to the target Facebook profile**
 2. **Open Developer Tools Console** (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I` on Mac)
-3. **Copy and paste the script** into the console
+3. **Copy and paste the script** from `moderation-assistant.js` into the console
 4. **Press Enter** to execute
 5. **Monitor progress** through console logs
    - Use `stopScroll()` to halt the process
+   - Use `resetProcessCount()` to reset counter
    - Track processing count and status updates
+
+---
 
 ### Sample Console Output
 
-```
-🛡️ MODERATION ASSISTANT ACTIVE
-[📊] Cycle #7 | Total processed: 511
-⬅️ Navigation retry initiated
-✓ Report submitted #512
-```
-
----
-
-## Development Roadmap
-
-- **Multi-Platform Support**: Extend to Instagram, Twitter/X, Reddit, LinkedIn
-- **Automation Framework**: Puppeteer/Playwright integration for headless operation
-- **Management Interface**: Desktop application with analytics dashboard
-- **Export Capabilities**: CSV logging of reported items with metadata
-- **Batch Operations**: Multi-profile processing workflow
-
----
-
-## Important Disclaimer
-
-This tool is intended for **legitimate reporting of genuine policy violations** in accordance with Facebook's Community Standards and Terms of Service.
-
-**Responsible Use Guidelines:**
-- Only report content that genuinely violates platform policies
-- Review Facebook's Community Standards before use
-- Understand that false reporting may violate Terms of Service
-- Be aware that automated actions may trigger platform security measures
-- Use human judgment to verify violations before deployment
-
-**The author assumes no responsibility for misuse or consequences arising from use of this script.** Users are solely responsible for ensuring compliance with all applicable platform policies, terms of service, and local laws.
-
----
-
-## Philosophy
-
-Effective content moderation requires both human judgment and efficient tools. This script serves as a force multiplier for users who regularly encounter policy violations and want to contribute to platform safety through proper reporting channels.
-
-**Automation amplifies impact.**  
-**Efficiency enables action.**  
-**Community standards matter.**
-
----
-
-## Contributing
-
-Contributions welcome! Please ensure all modifications:
-- Maintain ethical use focus
-- Comply with platform terms of service
-- Include proper error handling
-- Document changes clearly
-
----
-
-## License
-
-Open source - use responsibly and ethically.
-
----
-
-**Built for safer online communities through efficient moderation assistance.**
-
-🛡️ *Content Moderation Assistant — Streamlined Reporting for Platform Safety*
