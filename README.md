@@ -1,121 +1,137 @@
-# The Reputation Killer ☠️
+# Content Moderation Assistant 🛡️
 
-**My New Weapon: A Hate Speech Auto Reporter for Facebook**
-
----
-
-## Introducing My Arsenal's Latest Addition
-
-I present to you **The Reputation Killer** — a relentless, automated hate speech reporting script born from frustration with unchecked toxicity on social platforms. When I encounter hate-mongers spreading venom on Facebook, I don't just scroll past. I deploy this weapon on their profile wall and watch as every hate-filled post gets systematically reported and dismantled.
-
-This isn't a polite nudge to moderators. This is **scorched earth automation**.
-
-**The Reputation Killer is:**
-- **Non-lenient**: Zero tolerance. Every post gets scrutinized and reported.
-- **Ruthless**: No second chances. No mercy. No escape.
-- **Relentless**: Infinite loops, auto-retries, modal force-closing — it never stops until the job is done.
-- **Surgical**: Precision-targeting hate speech categories with sub-type drilling and error recovery.
-- **Unstoppable**: Stuck dialogs? Wrong menu loaded? It self-corrects, navigates back, and tries again.
-
-Built with browser automation mastery, it leverages ultra-fast DOM traversal, asynchronous task queuing, aggressive scroll injection, and modal state-machine recovery. This script doesn't just report — it **eradicates**.
-
-When you run The Reputation Killer on a hate-spreader's profile, you're not playing defense. You're going on the offensive.
+**An Automated Reporting Tool for Facebook Policy Violations**
 
 ---
 
-## What It Does
+## Overview
 
-The Reputation Killer opens every post on a user's Facebook wall, navigates the reporting UI with machine precision, selects "Hateful Speech → Promoting Hate → Posting Hateful Speech," submits the report, and moves to the next target — all in milliseconds per post. It scrolls infinitely to load the entire feed, handles UI errors with retry logic, and logs every annihilation to your browser console in dramatic, color-coded glory.
+**Content Moderation Assistant** is a browser automation script designed to streamline the reporting process for policy-violating content on Facebook. When you encounter accounts repeatedly posting content that violates community standards, this tool helps you efficiently submit reports through Facebook's official reporting interface.
 
-**Target Acquired. Reputation Destroyed.**
+This script automates the manual clicking process, saving time when reporting multiple policy violations from a single source.
+
+**Key Characteristics:**
+- **Efficient**: Processes multiple posts quickly through automated navigation
+- **Persistent**: Includes retry logic to handle UI inconsistencies
+- **Thorough**: Systematically reviews content on profile walls
+- **Precise**: Targets specific violation categories through Facebook's native reporting flow
+- **Self-Correcting**: Handles modal dialogs and navigation errors automatically
+
+Built with modern JavaScript and browser automation techniques, it features asynchronous task management, intelligent DOM traversal, automatic scroll loading, and modal state recovery.
+
+---
+
+## Functionality
+
+The script navigates through posts on a Facebook profile, opens the reporting interface for each post, selects appropriate violation categories (e.g., "Policy Violation → Harmful Content → Specific Subcategory"), submits reports, and continues to the next item. It automatically scrolls to load additional content and includes error recovery for common UI issues.
+
+**Streamlined Reporting for Community Safety**
 
 ---
 
 ## Features
 
-- **Blazing Fast Execution**: Ultra-aggressive scrolling (`setInterval` at 1ms) loads thousands of posts instantly.
-- **Modal Recovery Engine**: Auto-detects stuck dialogs and force-closes using Back/Close/Escape sequences.
-- **Smart Retry Logic**: Wrong category selected? It navigates back and retries up to 2 times per post.
-- **Infinite Loop Architecture**: Runs indefinitely until every post on the wall is reported.
-- **IIFE Encapsulation**: Zero global namespace pollution, no conflicts with existing page scripts.
-- **Color-Coded Battle Logs**: Real-time console output shows every destroyed post, retry, and recovery action.
-- **Skull & Crossbones Banner**: ASCII art header announces script activation with style.
+- **Fast Processing**: Efficient scrolling mechanism loads content rapidly
+- **Error Recovery**: Automatically handles stuck dialogs and UI inconsistencies
+- **Smart Retry System**: Reprocesses items if incorrect options are selected
+- **Continuous Operation**: Runs until all loaded content is processed
+- **Isolated Execution**: IIFE pattern prevents conflicts with page scripts
+- **Detailed Logging**: Console output tracks progress and actions
+- **Visual Feedback**: ASCII banner and formatted logs for monitoring
 
 ---
 
-## Technical Specs
+## Technical Details
 
 - **Language**: Vanilla JavaScript (ES6+)
-- **Execution Model**: Immediately Invoked Function Expression (IIFE) with async/await task queue
-- **DOM Selectors**: ARIA label targeting for accessibility-compliant UI automation
-- **Error Handling**: Multi-tier retry with exponential fallback (Back → Close → Escape)
-- **Scroll Strategy**: Infinite viewport injection via `window.scrollBy(0, 1000000)` @ 1ms intervals
-- **State Management**: DOM attribute marking (`data-processed`) prevents duplicate processing
-- **Target Platform**: Facebook (Web) — Mobile and other platforms coming soon
+- **Architecture**: Immediately Invoked Function Expression (IIFE) with async/await
+- **Selector Strategy**: ARIA label targeting for robust element selection
+- **Error Handling**: Multi-tier retry with fallback navigation (Back → Close → Escape)
+- **Scroll Implementation**: Viewport manipulation via `window.scrollBy()` with interval control
+- **State Tracking**: DOM attributes (`data-processed`) prevent duplicate operations
+- **Platform**: Facebook Web Interface
 
 ---
 
-## Usage
+## Usage Guide
 
-### Prerequisites
-- Desktop browser (Chrome, Firefox, Edge recommended)
-- Facebook account with reporting permissions
-- DevTools console access
+### Requirements
+- Desktop web browser (Chrome, Firefox, Edge, or Safari)
+- Active Facebook account
+- Browser Developer Tools access
 
-### Deployment
+### Installation Steps
 
-1. **Navigate to the hate-spreader's Facebook profile.**
-2. **Open DevTools Console** (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I` on Mac).
-3. **Paste the entire Reputation Killer script** into the console and press `Enter`.
-4. **Watch the annihilation unfold** in real-time as posts are auto-reported.
-   - To stop the scroll prematurely: `stopScroll()`
-   - Monitor destruction count and recovery actions in the console logs.
+1. **Navigate to the target Facebook profile**
+2. **Open Developer Tools Console** (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I` on Mac)
+3. **Copy and paste the script** into the console
+4. **Press Enter** to execute
+5. **Monitor progress** through console logs
+   - Use `stopScroll()` to halt the process
+   - Track processing count and status updates
 
-### Example Console Output
+### Sample Console Output
 
 ```
-☠️ REPUTATION KILLER JS ENGAGED! ☠️
-[☠️] Cycle #7 | Total destroyed: 511
-⬅️ BACK clicked - retrying
-❌ CLOSE clicked - forcing modal close
-☠️ REPUTATION DESTROYED #512
+🛡️ MODERATION ASSISTANT ACTIVE
+[📊] Cycle #7 | Total processed: 511
+⬅️ Navigation retry initiated
+✓ Report submitted #512
 ```
 
 ---
 
-## Roadmap
+## Development Roadmap
 
-- **Platform Expansion**: Instagram, Twitter/X, Reddit, LinkedIn hate speech reporters
-- **Headless Mode**: Puppeteer/Playwright integration for background execution
-- **GUI Dashboard**: Electron-based control panel with real-time stats and targeting
-- **Report Analytics**: Export CSV logs of reported posts with timestamps and categories
-- **Multi-Profile Targeting**: Batch processing for coordinated reporting campaigns
+- **Multi-Platform Support**: Extend to Instagram, Twitter/X, Reddit, LinkedIn
+- **Automation Framework**: Puppeteer/Playwright integration for headless operation
+- **Management Interface**: Desktop application with analytics dashboard
+- **Export Capabilities**: CSV logging of reported items with metadata
+- **Batch Operations**: Multi-profile processing workflow
 
 ---
 
-## Disclaimer
+## Important Disclaimer
 
-The Reputation Killer is an automation tool for combating hate speech and assisting content moderation. It is designed for **ethical use by individuals reporting genuinely harmful content** in accordance with Facebook's Community Standards.
+This tool is intended for **legitimate reporting of genuine policy violations** in accordance with Facebook's Community Standards and Terms of Service.
 
-**Use at your own risk.** Ensure compliance with platform policies and local laws. Auto reporting of non-violating content may result in account suspension. The author assumes no liability for misuse, abuse, or consequences arising from deployment of this script.
+**Responsible Use Guidelines:**
+- Only report content that genuinely violates platform policies
+- Review Facebook's Community Standards before use
+- Understand that false reporting may violate Terms of Service
+- Be aware that automated actions may trigger platform security measures
+- Use human judgment to verify violations before deployment
 
-**This tool does not replace human judgment.** Verify content violates platform rules before deploying.
+**The author assumes no responsibility for misuse or consequences arising from use of this script.** Users are solely responsible for ensuring compliance with all applicable platform policies, terms of service, and local laws.
 
 ---
 
 ## Philosophy
 
-Hate speech thrives in silence and inaction. The Reputation Killer is my answer to those who weaponize social platforms to spread bigotry, violence, and harm.
+Effective content moderation requires both human judgment and efficient tools. This script serves as a force multiplier for users who regularly encounter policy violations and want to contribute to platform safety through proper reporting channels.
 
-**Every line of code is a line of defense.**  
-**Every execution is an act of resistance.**  
-**Every report is a step toward a cleaner internet.**
-
-When moderation fails, automation prevails.
+**Automation amplifies impact.**  
+**Efficiency enables action.**  
+**Community standards matter.**
 
 ---
 
-**Because every hate post deserves annihilation.**  
-**Be legendary. Be relentless. Be the reckoning.**
+## Contributing
 
-☠️ *The Reputation Killer — Justice, Automated.* 🦴
+Contributions welcome! Please ensure all modifications:
+- Maintain ethical use focus
+- Comply with platform terms of service
+- Include proper error handling
+- Document changes clearly
+
+---
+
+## License
+
+Open source - use responsibly and ethically.
+
+---
+
+**Built for safer online communities through efficient moderation assistance.**
+
+🛡️ *Content Moderation Assistant — Streamlined Reporting for Platform Safety*
