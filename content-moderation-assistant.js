@@ -1,669 +1,938 @@
 javascript:(function() {
   'use strict';
 
-  /* ═══════════════════════════════════════════════════════════════════════════════════
-   *                           CONFIGURATION & CONSTANTS
-   * ═══════════════════════════════════════════════════════════════════════════════════ */
+  /* Configuration */
+  const TEST_MODE = false;
 
-  /* Test Mode Configuration */
-  const TEST_MODE = false; /* Set to true to stop after 1 successful report */
-
-  /* Reporting Path Configuration */
   const REPORTING_PATH = {
     step1: { 
       selector: '[aria-labelledby="dialog_title"] [role="listitem"] span', 
-      text: 'violent, hateful or disturbing' 
+      text: 'Violent, hateful or disturbing content'
     },
     step2: { 
       selector: '[aria-labelledby="dialog_title"] [role="listitem"] span', 
-      text: 'promoting hate' 
+      text: 'Promoting hate'
     },
     step3: { 
       selector: '[aria-labelledby="dialog_title"] [role="listitem"] span', 
-      text: 'posting hateful speech' 
+      text: 'Posting hateful speech'
     }
   };
 
-  /* Selectors */
   const SELECTORS = {
     actionsButton: '[aria-label="Actions for this post"]',
-    dialogTitle: '[aria-labelledby="dialog_title"]',
+    dialog: '[role="dialog"]',
     menuItem: '[role="menuitem"]',
     menuItemSpan: '[role="menuitem"] span',
     tooltip: '[role="tooltip"]',
-    backButton: '[aria-label="Back"]',
     closeButton: '[aria-label="Close"]',
     submitButton: '[aria-label="Submit"]',
     nextButton: '[aria-label="Next"]',
     doneButton: '[aria-label="Done"]'
   };
 
-  /* Search Text */
-  const SEARCH_TEXT = {
-    report: 'report'
-  };
-
-  /* Retry Configuration */
-  const RETRY_CONFIG = {
-    elementWaitTimeout: 30000,   /* 30 seconds to wait for element before retry */
-    actionRetryDelay: 10000,     /* 10 seconds before retrying failed action */
-    maxFullRetries: 5            /* Max full flow retries before giving up on post */
-  };
-
-  /* Timing Configuration (milliseconds) */
   const TIMING = {
-    recursiveCheck: 0,           /* Zero delay for recursive checks - blazing fast */
-    postClickWait: 500,          /* Wait after clicking for UI to respond */
-    afterSubmit: 800,            /* Wait after submit for next screen */
-    scrollForContent: 600,       /* Wait after scrolling for content to load */
-    contentSettle: 1000,         /* Wait for content to settle after scroll */
-    scrollInterval: 100,         /* Interval for manual scroll */
-    scrollAmount: 1000           /* Pixels to scroll per interval */
+    afterClickAll: 1000,
+    betweenSteps: 1200,
+    finalWait: 2500,
+    dialogCleanup: 3000,
+    scrollForContent: 600,
+    contentSettle: 1000,
+    scrollAmount: 1500,
+    betweenCycles: 3000
   };
 
-  /* Scroll Configuration */
   const SCROLL_CONFIG = {
-    maxScrollAttempts: 15,       /* Max scroll attempts to load new content */
-    scrollBehavior: 'smooth',    /* Scroll behavior */
-    scrollBlock: 'center'        /* Scroll block alignment */
+    scrollBehavior: 'smooth',
+    continuousScrollAttempts: 5
   };
 
-  /* Attribute Names */
   const ATTRIBUTES = {
-    processed: 'data-processed'  /* Attribute to mark processed posts */
+    processed: 'data-processed'
   };
 
-  /* Console Styles */
-  const CONSOLE_STYLES = {
-    header: 'color: #008080; font-weight: bold;',
-    title: 'color: #008080; font-weight: bold; font-size: 14px;',
-    path: 'color: #ff6b6b; font-weight: bold; font-size: 12px;',
-    commands: 'color: #00aaaa; font-weight: bold;',
-    success: 'color: #00aa00; font-weight: bold;',
-    successSmall: 'color: #00aa00; font-size: 11px;',
-    warning: 'color: #ff8800;',
-    error: 'color: #ff6b6b;',
-    errorBold: 'color: #ff0000; font-weight: bold;',
-    info: 'color: #0088aa; font-weight: bold;',
-    infoLight: 'color: #00aaaa;',
-    cycle: 'color: #008080; font-weight: bold; font-size: 14px;',
-    stats: 'color: #008080; font-weight: bold;',
-    complete: 'color: #008080; font-weight: bold; font-size: 16px;',
-    debug: 'color: #9370db; font-style: italic;'
+  /* Performance tracking */
+  const stats = {
+    startTime: Date.now(),
+    totalClicks: 0,
+    peakBatchSize: 0,
+    batchSizes: [],
+    scrollCount: 0,
+    successCount: 0,
+    cycleCount: 0
   };
 
-  /* Banner Text */
-  const BANNER = `
-═══════════════════════════════════════════════════════════════════════════════════════
-           🛡️  CONTENT MODERATION ASSISTANT ACTIVE
-      REPORTING: Violent/Hateful Content → Promoting Hate → Hateful Speech
-                    ⚡ SMART WAIT | PROPER RETRIES ⚡
-═══════════════════════════════════════════════════════════════════════════════════════
-`;
+  /* Theme state */
+  let isDarkMode = true;
 
-  /* ═══════════════════════════════════════════════════════════════════════════════════
-   *                           INITIALIZATION
-   * ═══════════════════════════════════════════════════════════════════════════════════ */
-
-  console.clear();
-  console.log(BANNER, CONSOLE_STYLES.header);
-  console.log('%c[MODERATION ASSISTANT] 🛡️ Smart Wait | Proper Retry Edition', CONSOLE_STYLES.title);
-  console.log('%c[REPORTING PATH] Violent, hateful or disturbing content → Promoting hate → Posting hateful speech', CONSOLE_STYLES.path);
-
-  /* In-memory counter */
-  let totalProcessed = 0;
-
-  /* Scroll control */
-  let scrollInterval = null;
-
-  /* ═══════════════════════════════════════════════════════════════════════════════════
-   *                           GLOBAL CONTROLS
-   * ═══════════════════════════════════════════════════════════════════════════════════ */
-
-  window.startScroll = function() {
-    if (scrollInterval) return;
-    scrollInterval = setInterval(function(){ 
-      window.scrollBy(0, TIMING.scrollAmount); 
-    }, TIMING.scrollInterval);
-    console.log('%c▶️ SCROLL STARTED', CONSOLE_STYLES.title);
-  };
-  
-  window.stopScroll = function() {
-    if (scrollInterval) {
-      clearInterval(scrollInterval);
-      scrollInterval = null;
-      console.log('%c⏸️ SCROLL STOPPED', CONSOLE_STYLES.title);
-    }
-  };
-  
-  window.resetProcessCount = function() {
-    totalProcessed = 0;
-    console.log('%c🔄 PROCESS COUNT RESET TO 0', CONSOLE_STYLES.info);
-  };
-  
-  window.getProcessCount = function() {
-    console.log(`%c[📊] Current processed count: ${totalProcessed}`, CONSOLE_STYLES.info);
-    return totalProcessed;
-  };
-  
-  console.log('%c[MODERATION ASSISTANT] 💡 Commands: startScroll() | stopScroll() | resetProcessCount() | getProcessCount()', CONSOLE_STYLES.commands);
-
-  /* ═══════════════════════════════════════════════════════════════════════════════════
-   *                           UTILITY FUNCTIONS
-   * ═══════════════════════════════════════════════════════════════════════════════════ */
-
-  /* Check if element is actually visible and clickable */
-  function isElementVisible(element) {
-    if (!element) return false;
-    
-    const rect = element.getBoundingClientRect();
-    const style = window.getComputedStyle(element);
-    
-    return (
-      rect.width > 0 &&
-      rect.height > 0 &&
-      style.display !== 'none' &&
-      style.visibility !== 'hidden' &&
-      style.opacity !== '0'
-    );
-  }
-
-  /* Wait for element to appear with timeout - returns null if timeout exceeded */
-  async function waitForElement(selector, matchText = null, timeoutMs = RETRY_CONFIG.elementWaitTimeout) {
-    const startTime = Date.now();
-    let attempt = 0;
-    
-    while (Date.now() - startTime < timeoutMs) {
-      const items = document.querySelectorAll(selector);
-      
-      for (let item of items) {
-        if (!isElementVisible(item)) continue;
+  /* Create overlay UI */
+  function createOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'moderation-assistant-overlay';
+    overlay.innerHTML = `
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
-        if (!matchText) {
-          return item;
+        /* Dark Mode (Default) */
+        :root {
+          --bg-primary: #1a1d29;
+          --bg-secondary: #0f1419;
+          --bg-card: rgba(255, 255, 255, 0.03);
+          --bg-card-hover: rgba(255, 255, 255, 0.05);
+          --border-color: rgba(255, 255, 255, 0.08);
+          --text-primary: #ffffff;
+          --text-secondary: rgba(255, 255, 255, 0.6);
+          --text-tertiary: rgba(255, 255, 255, 0.4);
+          --accent-primary: #3b82f6;
+          --accent-success: #10b981;
+          --accent-error: #ef4444;
+          --accent-warning: #f59e0b;
+          --shadow-color: rgba(0, 0, 0, 0.5);
+          --log-success-bg: rgba(16, 185, 129, 0.1);
+          --log-error-bg: rgba(239, 68, 68, 0.1);
+          --log-warning-bg: rgba(245, 158, 11, 0.1);
+          --log-info-bg: rgba(59, 130, 246, 0.1);
+          --log-cycle-bg: rgba(168, 85, 247, 0.1);
         }
         
-        const itemText = (item.innerText || item.textContent || '').trim().toLowerCase();
-        const searchText = matchText.trim().toLowerCase();
-        
-        if (itemText.includes(searchText)) {
-          return item;
+        /* Light Mode */
+        .light-mode {
+          --bg-primary: #ffffff;
+          --bg-secondary: #f9fafb;
+          --bg-card: rgba(0, 0, 0, 0.02);
+          --bg-card-hover: rgba(0, 0, 0, 0.04);
+          --border-color: rgba(0, 0, 0, 0.08);
+          --text-primary: #111827;
+          --text-secondary: rgba(0, 0, 0, 0.6);
+          --text-tertiary: rgba(0, 0, 0, 0.4);
+          --accent-primary: #2563eb;
+          --accent-success: #059669;
+          --accent-error: #dc2626;
+          --accent-warning: #d97706;
+          --shadow-color: rgba(0, 0, 0, 0.1);
+          --log-success-bg: rgba(16, 185, 129, 0.15);
+          --log-error-bg: rgba(239, 68, 68, 0.15);
+          --log-warning-bg: rgba(245, 158, 11, 0.15);
+          --log-info-bg: rgba(59, 130, 246, 0.15);
+          --log-cycle-bg: rgba(168, 85, 247, 0.15);
         }
-      }
-      
-      /* Log progress every 5 seconds */
-      if (attempt % 500 === 0 && attempt > 0) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(`%c[⏳] Waiting for element... ${elapsed}s elapsed`, CONSOLE_STYLES.infoLight);
-      }
-      
-      await new Promise(r => setTimeout(r, TIMING.recursiveCheck));
-      attempt++;
-    }
-    
-    return null; /* Timeout exceeded */
-  }
-
-  /* AGGRESSIVE MULTI-METHOD CLICK */
-  async function aggressiveClick(element) {
-    /* Method 1: Standard click */
-    try {
-      element.click();
-      return true;
-    } catch(e) { /* Ignore and try next */ }
-    
-    /* Method 2: MouseEvent with coordinates */
-    try {
-      const rect = element.getBoundingClientRect();
-      const clickEvent = new MouseEvent('click', {
-        view: window,
-        bubbles: true,
-        cancelable: true,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2
-      });
-      element.dispatchEvent(clickEvent);
-      return true;
-    } catch(e) { /* Ignore and try next */ }
-    
-    /* Method 3: MouseDown + MouseUp */
-    try {
-      const rect = element.getBoundingClientRect();
-      const mouseDown = new MouseEvent('mousedown', {
-        view: window,
-        bubbles: true,
-        cancelable: true,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2
-      });
-      const mouseUp = new MouseEvent('mouseup', {
-        view: window,
-        bubbles: true,
-        cancelable: true,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2
-      });
-      element.dispatchEvent(mouseDown);
-      element.dispatchEvent(mouseUp);
-      element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-      return true;
-    } catch(e) { /* Ignore and try next */ }
-    
-    /* Method 4: Focus + Enter key */
-    try {
-      element.focus();
-      const enterDown = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true });
-      const enterUp = new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true });
-      element.dispatchEvent(enterDown);
-      element.dispatchEvent(enterUp);
-      return true;
-    } catch(e) { /* Ignore and try next */ }
-    
-    return false;
-  }
-
-  /* Wait for element and click it - with timeout */
-  async function waitForAndClick(selector, matchText = null, timeoutMs = RETRY_CONFIG.elementWaitTimeout) {
-    const element = await waitForElement(selector, matchText, timeoutMs);
-    
-    if (!element) {
-      return null; /* Element not found within timeout */
-    }
-    
-    /* Scroll element into view */
-    element.scrollIntoView({ 
-      behavior: SCROLL_CONFIG.scrollBehavior, 
-      block: SCROLL_CONFIG.scrollBlock 
-    });
-    await new Promise(r => setTimeout(r, 100));
-    
-    /* Click the element */
-    const clicked = await aggressiveClick(element);
-    
-    if (!clicked) {
-      console.log('%c[⚠️] Click failed on element', CONSOLE_STYLES.warning);
-      return null;
-    }
-    
-    /* Wait for UI to respond after click */
-    await new Promise(r => setTimeout(r, TIMING.postClickWait));
-    
-    return element;
-  }
-
-  /* Click actions button and wait for menu to appear */
-  async function clickActionsButton(button) {
-    if (!isElementVisible(button)) {
-      console.log('%c[⚠️] Actions button not visible', CONSOLE_STYLES.warning);
-      return false;
-    }
-    
-    button.scrollIntoView({ 
-      behavior: SCROLL_CONFIG.scrollBehavior, 
-      block: SCROLL_CONFIG.scrollBlock 
-    });
-    await new Promise(r => setTimeout(r, 100));
-    
-    /* Remove tooltips */
-    const tooltips = document.querySelectorAll(SELECTORS.tooltip);
-    tooltips.forEach(tooltip => tooltip.style.display = 'none');
-    
-    /* Click the button */
-    const clicked = await aggressiveClick(button);
-    
-    if (!clicked) {
-      console.log('%c[⚠️] Failed to click Actions button', CONSOLE_STYLES.warning);
-      return false;
-    }
-    
-    /* Wait for menu to appear */
-    await new Promise(r => setTimeout(r, TIMING.postClickWait));
-    
-    const menu = await waitForElement(SELECTORS.menuItem, null, 5000);
-    
-    if (menu) {
-      console.log('%c✓ Actions menu opened', CONSOLE_STYLES.successSmall);
-      return true;
-    } else {
-      console.log('%c[⚠️] Menu did not appear', CONSOLE_STYLES.warning);
-      return false;
-    }
-  }
-
-  /* Find and click "Report post" option in menu - ENHANCED DEBUG VERSION */
-  async function clickReportOption() {
-    console.log('%c[🔍] Searching for "Report post" option...', CONSOLE_STYLES.debug);
-    
-    /* Strategy 1: Search in visible menu items with span */
-    const menuItemSpans = document.querySelectorAll(SELECTORS.menuItemSpan);
-    console.log(`%c[🔍] Found ${menuItemSpans.length} menu item spans`, CONSOLE_STYLES.debug);
-    
-    for (let span of menuItemSpans) {
-      if (!isElementVisible(span)) continue;
-      
-      const text = (span.innerText || span.textContent || '').trim().toLowerCase();
-      console.log(`%c[🔍] Checking span text: "${text}"`, CONSOLE_STYLES.debug);
-      
-      if (text.includes('report')) {
-        console.log(`%c[✓] Found "Report" in span: "${text}"`, CONSOLE_STYLES.successSmall);
         
-        /* Click the parent menu item, not just the span */
-        let menuItem = span.closest('[role="menuitem"]');
-        if (menuItem) {
-          menuItem.scrollIntoView({ 
-            behavior: SCROLL_CONFIG.scrollBehavior, 
-            block: SCROLL_CONFIG.scrollBlock 
-          });
-          await new Promise(r => setTimeout(r, 100));
-          
-          const clicked = await aggressiveClick(menuItem);
-          if (clicked) {
-            console.log('%c✓ Report option clicked successfully', CONSOLE_STYLES.successSmall);
-            await new Promise(r => setTimeout(r, TIMING.postClickWait));
-            return true;
+        #moderation-assistant-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 999999;
+          pointer-events: none;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        #moderation-assistant-panel {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 420px;
+          height: 100vh;
+          background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+          box-shadow: 4px 0 24px var(--shadow-color);
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid var(--border-color);
+          overflow: hidden;
+          pointer-events: auto;
+          transition: transform 0.3s ease, background 0.3s ease;
+        }
+        
+        #moderation-assistant-panel.hidden {
+          transform: translateX(-100%);
+        }
+        
+        #toggle-button {
+          position: fixed;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-left: none;
+          border-radius: 0 8px 8px 0;
+          padding: 20px 10px;
+          cursor: pointer;
+          z-index: 1000000;
+          pointer-events: auto;
+          transition: all 0.3s ease;
+          writing-mode: vertical-rl;
+          color: var(--text-secondary);
+          font-weight: 600;
+          font-size: 11px;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          display: none;
+        }
+        
+        #toggle-button.visible {
+          display: block;
+        }
+        
+        #toggle-button:hover {
+          background: var(--bg-card);
+          transform: translateY(-50%) translateX(5px);
+        }
+        
+        #moderation-assistant-header {
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
+          padding: 20px 24px;
+          border-bottom: 1px solid var(--border-color);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .header-content {
+          flex: 1;
+        }
+        
+        #moderation-assistant-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin: 0 0 6px 0;
+          letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        
+        .title-icon {
+          font-size: 18px;
+        }
+        
+        #moderation-assistant-subtitle {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin: 0;
+          font-weight: 500;
+        }
+        
+        .header-controls {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        
+        .theme-toggle {
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          padding: 8px 10px;
+          cursor: pointer;
+          color: var(--text-secondary);
+          font-size: 16px;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .theme-toggle:hover {
+          background: var(--bg-card-hover);
+        }
+        
+        .hide-button {
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          padding: 8px 12px;
+          cursor: pointer;
+          color: var(--text-secondary);
+          font-size: 11px;
+          font-weight: 600;
+          transition: all 0.2s ease;
+        }
+        
+        .hide-button:hover {
+          background: var(--bg-card-hover);
+        }
+        
+        #moderation-assistant-stats {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          padding: 20px 24px;
+          background: rgba(0, 0, 0, 0.02);
+          border-bottom: 1px solid var(--border-color);
+        }
+        
+        .stat-item {
+          text-align: center;
+          padding: 16px;
+          background: var(--bg-card);
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+          transition: all 0.2s ease;
+        }
+        
+        .stat-item:hover {
+          background: var(--bg-card-hover);
+          transform: translateY(-2px);
+        }
+        
+        .stat-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: var(--accent-primary);
+          display: block;
+          font-variant-numeric: tabular-nums;
+        }
+        
+        .stat-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-top: 6px;
+          display: block;
+          font-weight: 600;
+        }
+        
+        #performance-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+          padding: 16px 24px;
+          background: rgba(0, 0, 0, 0.015);
+          border-bottom: 1px solid var(--border-color);
+        }
+        
+        .perf-item {
+          text-align: center;
+          font-size: 10px;
+          color: var(--text-tertiary);
+          padding: 10px;
+          background: var(--bg-card);
+          border-radius: 6px;
+        }
+        
+        .perf-value {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--accent-success);
+          display: block;
+        }
+        
+        #progress-bars {
+          padding: 16px 24px;
+          background: rgba(0, 0, 0, 0.015);
+          border-bottom: 1px solid var(--border-color);
+        }
+        
+        .progress-bar-container {
+          margin-bottom: 0;
+        }
+        
+        .progress-label {
+          font-size: 11px;
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+          display: flex;
+          justify-content: space-between;
+          font-weight: 600;
+        }
+        
+        .progress-bar {
+          height: 6px;
+          background: var(--bg-card);
+          border-radius: 3px;
+          overflow: hidden;
+          border: 1px solid var(--border-color);
+        }
+        
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, var(--accent-primary), #2563eb);
+          border-radius: 3px;
+          transition: width 0.5s ease;
+        }
+        
+        #moderation-assistant-log {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px 24px;
+          font-size: 12px;
+          line-height: 1.6;
+          color: var(--text-primary);
+          background: rgba(0, 0, 0, 0.01);
+        }
+        
+        #moderation-assistant-log::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        #moderation-assistant-log::-webkit-scrollbar-track {
+          background: var(--bg-card);
+        }
+        
+        #moderation-assistant-log::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+          border-radius: 3px;
+        }
+        
+        .log-entry {
+          padding: 8px 12px;
+          margin-bottom: 4px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
           }
         }
-      }
-    }
-    
-    /* Strategy 2: Search directly in menu items */
-    const menuItems = document.querySelectorAll(SELECTORS.menuItem);
-    console.log(`%c[🔍] Found ${menuItems.length} total menu items`, CONSOLE_STYLES.debug);
-    
-    for (let item of menuItems) {
-      if (!isElementVisible(item)) continue;
-      
-      const text = (item.innerText || item.textContent || '').trim().toLowerCase();
-      console.log(`%c[🔍] Checking menu item text: "${text}"`, CONSOLE_STYLES.debug);
-      
-      if (text.includes('report')) {
-        console.log(`%c[✓] Found "Report" in menu item: "${text}"`, CONSOLE_STYLES.successSmall);
         
-        item.scrollIntoView({ 
-          behavior: SCROLL_CONFIG.scrollBehavior, 
-          block: SCROLL_CONFIG.scrollBlock 
-        });
-        await new Promise(r => setTimeout(r, 100));
-        
-        const clicked = await aggressiveClick(item);
-        if (clicked) {
-          console.log('%c✓ Report option clicked successfully', CONSOLE_STYLES.successSmall);
-          await new Promise(r => setTimeout(r, TIMING.postClickWait));
-          return true;
+        .log-entry.success {
+          background: var(--log-success-bg);
         }
-      }
-    }
+        
+        .log-entry.error {
+          background: var(--log-error-bg);
+        }
+        
+        .log-entry.warning {
+          background: var(--log-warning-bg);
+        }
+        
+        .log-entry.info {
+          background: var(--log-info-bg);
+        }
+        
+        .log-entry.cycle {
+          background: var(--log-cycle-bg);
+          font-weight: 600;
+        }
+        
+        .log-entry.loading {
+          background: var(--log-info-bg);
+        }
+        
+        .log-timestamp {
+          color: var(--text-tertiary);
+          font-size: 10px;
+          font-weight: 500;
+          min-width: 70px;
+        }
+        
+        .log-icon {
+          font-size: 12px;
+          min-width: 16px;
+          text-align: center;
+        }
+        
+        .log-icon.spinner {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .log-message {
+          flex: 1;
+          font-size: 12px;
+        }
+        
+        .log-dots::after {
+          content: '';
+          animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+          0%, 20% { content: ''; }
+          40% { content: '.'; }
+          60% { content: '..'; }
+          80%, 100% { content: '...'; }
+        }
+        
+        #moderation-assistant-controls {
+          padding: 20px 24px;
+          background: rgba(0, 0, 0, 0.02);
+          border-top: 1px solid var(--border-color);
+        }
+        
+        .control-btn {
+          width: 100%;
+          padding: 14px 20px;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          background: rgba(239, 68, 68, 0.1);
+          color: var(--accent-error);
+          font-family: 'Inter', sans-serif;
+        }
+        
+        .control-btn:hover {
+          background: rgba(239, 68, 68, 0.2);
+          border-color: rgba(239, 68, 68, 0.5);
+        }
+      </style>
+      
+      <div id="moderation-assistant-panel">
+        <div id="moderation-assistant-header">
+          <div class="header-content">
+            <div id="moderation-assistant-title">
+              <span class="title-icon">🛡️</span>
+              Content Moderation Tool
+            </div>
+            <div id="moderation-assistant-subtitle">
+              Automated violation reporting assistant
+            </div>
+          </div>
+          <div class="header-controls">
+            <button class="theme-toggle" id="theme-toggle-btn" title="Toggle theme">
+              <span id="theme-icon">🌙</span>
+            </button>
+            <button class="hide-button" id="hide-panel-btn">◀</button>
+          </div>
+        </div>
+        
+        <div id="moderation-assistant-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="stat-processed">0</span>
+            <span class="stat-label">Reported</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-cycle">0</span>
+            <span class="stat-label">Cycles</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-batch">0</span>
+            <span class="stat-label">Last Batch</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-status">ACTIVE</span>
+            <span class="stat-label">Status</span>
+          </div>
+        </div>
+        
+        <div id="performance-stats">
+          <div class="perf-item">
+            <span class="perf-value" id="perf-cps">0.0</span>
+            <span>Actions/s</span>
+          </div>
+          <div class="perf-item">
+            <span class="perf-value" id="perf-uptime">0s</span>
+            <span>Uptime</span>
+          </div>
+          <div class="perf-item">
+            <span class="perf-value" id="perf-peak">0</span>
+            <span>Peak</span>
+          </div>
+          <div class="perf-item">
+            <span class="perf-value" id="perf-scrolls">0</span>
+            <span>Scrolls</span>
+          </div>
+        </div>
+        
+        <div id="progress-bars">
+          <div class="progress-bar-container">
+            <div class="progress-label">
+              <span>Current Cycle</span>
+              <span id="cycle-progress-percent">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="cycle-progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="moderation-assistant-log"></div>
+        
+        <div id="moderation-assistant-controls">
+          <button class="control-btn" id="stop-btn">
+            ⏹️ Stop Process
+          </button>
+        </div>
+      </div>
+      
+      <div id="toggle-button">
+        Show Panel
+      </div>
+    `;
     
-    /* Strategy 3: Use waitForAndClick with broader selector */
-    console.log('%c[🔍] Trying waitForAndClick method...', CONSOLE_STYLES.debug);
-    const reportElement = await waitForAndClick(SELECTORS.menuItemSpan, SEARCH_TEXT.report, 5000);
+    document.body.appendChild(overlay);
     
-    if (reportElement) {
-      console.log('%c✓ Report option found and clicked via waitForAndClick', CONSOLE_STYLES.successSmall);
-      return true;
-    }
+    document.getElementById('stop-btn').addEventListener('click', () => window.moderationAssistant.stop());
+    document.getElementById('hide-panel-btn').addEventListener('click', () => window.moderationAssistant.togglePanel());
+    document.getElementById('toggle-button').addEventListener('click', () => window.moderationAssistant.togglePanel());
+    document.getElementById('theme-toggle-btn').addEventListener('click', () => window.moderationAssistant.toggleTheme());
     
-    console.log('%c[❌] Failed to find or click "Report post" option', CONSOLE_STYLES.errorBold);
-    return false;
+    return overlay;
   }
 
-  /* Modal utility: Try [Back], then [Close], then [Escape] */
-  async function clickBackOrClose() {
-    /* Try Back button */
-    const backBtn = await waitForElement(SELECTORS.backButton, null, 2000);
-    if (backBtn) {
-      await aggressiveClick(backBtn);
-      console.log('%c⬅️ BACK clicked', CONSOLE_STYLES.info);
-      await new Promise(r => setTimeout(r, TIMING.postClickWait));
-    }
-    
-    /* Try Close button */
-    const closeBtn = await waitForElement(SELECTORS.closeButton, null, 2000);
-    if (closeBtn) {
-      await aggressiveClick(closeBtn);
-      console.log('%c❌ CLOSE clicked', CONSOLE_STYLES.stats);
-      await new Promise(r => setTimeout(r, TIMING.postClickWait));
-    }
-    
-    /* Send Escape key */
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape' }));
-    await new Promise(r => setTimeout(r, TIMING.postClickWait));
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════════════════
-   *                           REPORTING FUNCTIONS
-   * ═══════════════════════════════════════════════════════════════════════════════════ */
-
-  /* Process reporting flow with proper retry logic */
-  async function processReportingFlow(id = '') {
-    let retryCount = 0;
-    
-    while (retryCount < RETRY_CONFIG.maxFullRetries) {
-      try {
-        /* Check for dialog */
-        const dialog = await waitForElement(SELECTORS.dialogTitle, null, 10000);
-        
-        if (!dialog) {
-          console.log(`%c[⚠️] No dialog for #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-          await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-          retryCount++;
-          continue;
-        }
-        
-        if (retryCount > 0) {
-          console.log(`%c♻️ Reporting flow retry ${retryCount + 1} for #${id}`, CONSOLE_STYLES.info);
-        }
-
-        /* Step 1: Click and wait for next screen */
-        const step1 = await waitForAndClick(REPORTING_PATH.step1.selector, REPORTING_PATH.step1.text);
-        if (!step1) {
-          console.log(`%c[⚠️] Step 1 failed for #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-          await clickBackOrClose();
-          await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-          retryCount++;
-          continue;
-        }
-        console.log(`%c✓ Step 1: "${REPORTING_PATH.step1.text}"`, CONSOLE_STYLES.successSmall);
-
-        /* Step 2: Click and wait for next screen */
-        const step2 = await waitForAndClick(REPORTING_PATH.step2.selector, REPORTING_PATH.step2.text);
-        if (!step2) {
-          console.log(`%c[⚠️] Step 2 failed for #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-          await clickBackOrClose();
-          await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-          retryCount++;
-          continue;
-        }
-        console.log(`%c✓ Step 2: "${REPORTING_PATH.step2.text}"`, CONSOLE_STYLES.successSmall);
-
-        /* Step 3: Click and wait for next screen */
-        const step3 = await waitForAndClick(REPORTING_PATH.step3.selector, REPORTING_PATH.step3.text);
-        if (!step3) {
-          console.log(`%c[⚠️] Step 3 failed for #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-          await clickBackOrClose();
-          await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-          retryCount++;
-          continue;
-        }
-        console.log(`%c✓ Step 3: "${REPORTING_PATH.step3.text}"`, CONSOLE_STYLES.successSmall);
-
-        /* Submit */
-        const submit = await waitForAndClick(SELECTORS.submitButton, null);
-        if (submit) {
-          console.log('%c✓ Submit clicked', CONSOLE_STYLES.successSmall);
-        }
-        
-        /* Next */
-        const next = await waitForAndClick(SELECTORS.nextButton, null);
-        if (next) {
-          console.log('%c✓ Next clicked', CONSOLE_STYLES.successSmall);
-        }
-        
-        /* Done */
-        const done = await waitForAndClick(SELECTORS.doneButton, null);
-        if (done) {
-          console.log(`%c✓ REPORT SUBMITTED #${id}`, CONSOLE_STYLES.success);
-          await clickBackOrClose();
-          return true; /* Success */
-        } else {
-          console.log(`%c[⚠️] Done button not found for #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-          await clickBackOrClose();
-          await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-          retryCount++;
-          continue;
-        }
-        
-      } catch(e) {
-        console.log(`%c[⚠️] Error in flow for #${id}: ${e.message}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-        await clickBackOrClose();
-        await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-        retryCount++;
-      }
-    }
-    
-    console.log(`%c[❌] Failed to report #${id} after ${RETRY_CONFIG.maxFullRetries} attempts`, CONSOLE_STYLES.errorBold);
-    await clickBackOrClose();
-    return false; /* Failed after max retries */
-  }
-
-  async function processPost(button, id) {
-    if (button.hasAttribute(ATTRIBUTES.processed)) return false;
-    button.setAttribute(ATTRIBUTES.processed, 'true');
-
-    let retryCount = 0;
-    
-    while (retryCount < RETRY_CONFIG.maxFullRetries) {
-      /* Try to open actions menu */
-      const menuOpened = await clickActionsButton(button);
+  /* UI Logger */
+  const UILogger = {
+    log(message, type = 'info', isLoading = false) {
+      const logContainer = document.getElementById('moderation-assistant-log');
+      if (!logContainer) return;
       
-      if (!menuOpened) {
-        console.log(`%c[⚠️] Failed to open menu for post #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-        await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-        retryCount++;
-        continue;
-      }
-
-      /* Wait for "Report post" option and click it - ENHANCED VERSION */
-      const reportClicked = await clickReportOption();
+      const timestamp = new Date().toLocaleTimeString();
+      const icons = { 
+        success: '✓', 
+        error: '✗', 
+        warning: '⚠', 
+        info: '→', 
+        cycle: '⟳',
+        loading: '◉'
+      };
       
-      if (!reportClicked) {
-        console.log(`%c[⚠️] Report option not found for #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-        await clickBackOrClose();
-        await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-        retryCount++;
-        continue;
-      }
-
-      /* Main reporting flow */
-      const success = await processReportingFlow(id);
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${isLoading ? 'loading' : type}`;
       
-      if (success) {
-        return true; /* Success */
+      const iconClass = isLoading ? 'log-icon spinner' : 'log-icon';
+      const messageClass = isLoading ? 'log-message log-dots' : 'log-message';
+      
+      entry.innerHTML = `
+        <span class="log-timestamp">${timestamp}</span>
+        <span class="${iconClass}">${icons[isLoading ? 'loading' : type] || '•'}</span>
+        <span class="${messageClass}">${message}</span>
+      `;
+      
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+      
+      const entries = logContainer.querySelectorAll('.log-entry');
+      if (entries.length > 100) entries[0].remove();
+      
+      console.log(`[${type.toUpperCase()}] ${message}`);
+      
+      return entry;
+    },
+    
+    loading(msg) { return this.log(msg, 'info', true); },
+    success(msg) { this.log(msg, 'success'); },
+    error(msg) { this.log(msg, 'error'); },
+    warning(msg) { this.log(msg, 'warning'); },
+    info(msg) { this.log(msg, 'info'); },
+    cycle(msg) { this.log(msg, 'cycle'); },
+    
+    updateLoading(entry, message, complete = false, type = 'success') {
+      if (!entry) return;
+      
+      const icon = entry.querySelector('.log-icon');
+      const messageSpan = entry.querySelector('.log-message');
+      
+      if (complete) {
+        entry.className = `log-entry ${type}`;
+        icon.className = 'log-icon';
+        icon.textContent = type === 'success' ? '✓' : (type === 'error' ? '✗' : '⚠');
+        messageSpan.className = 'log-message';
+      }
+      
+      messageSpan.textContent = message;
+    },
+    
+    updateStats(processed, cycle, batchSize, status) {
+      document.getElementById('stat-processed').textContent = processed;
+      document.getElementById('stat-cycle').textContent = cycle;
+      document.getElementById('stat-batch').textContent = batchSize;
+      document.getElementById('stat-status').textContent = status;
+    },
+    
+    updatePerformance() {
+      const uptime = Math.floor((Date.now() - stats.startTime) / 1000);
+      const aps = uptime > 0 ? (stats.totalClicks / uptime).toFixed(1) : 0;
+      
+      document.getElementById('perf-cps').textContent = aps;
+      document.getElementById('perf-uptime').textContent = uptime + 's';
+      document.getElementById('perf-peak').textContent = stats.peakBatchSize;
+      document.getElementById('perf-scrolls').textContent = stats.scrollCount;
+    },
+    
+    updateProgress(percent) {
+      const fill = document.getElementById('cycle-progress-fill');
+      const label = document.getElementById('cycle-progress-percent');
+      
+      if (fill) fill.style.width = percent + '%';
+      if (label) label.textContent = Math.round(percent) + '%';
+    }
+  };
+
+  createOverlay();
+  
+  UILogger.success('System initialized');
+  UILogger.info('Continuous processing mode enabled');
+
+  let totalProcessed = 0;
+  let currentCycle = 0;
+  let isStopped = false;
+  let isPanelHidden = false;
+
+  setInterval(() => {
+    if (!isStopped) {
+      UILogger.updatePerformance();
+    }
+  }, 1000);
+
+  window.moderationAssistant = {
+    stop() {
+      isStopped = true;
+      UILogger.error('Process stopped');
+      UILogger.updateStats(totalProcessed, currentCycle, 0, 'STOPPED');
+      setTimeout(() => {
+        const overlay = document.getElementById('moderation-assistant-overlay');
+        if (overlay) overlay.remove();
+      }, 2000);
+    },
+    
+    togglePanel() {
+      isPanelHidden = !isPanelHidden;
+      const panel = document.getElementById('moderation-assistant-panel');
+      const toggleBtn = document.getElementById('toggle-button');
+      
+      if (isPanelHidden) {
+        panel.classList.add('hidden');
+        toggleBtn.classList.add('visible');
       } else {
-        console.log(`%c[⚠️] Reporting flow failed for #${id}, waiting 10s before retry...`, CONSOLE_STYLES.warning);
-        await new Promise(r => setTimeout(r, RETRY_CONFIG.actionRetryDelay));
-        retryCount++;
+        panel.classList.remove('hidden');
+        toggleBtn.classList.remove('visible');
+      }
+    },
+    
+    toggleTheme() {
+      isDarkMode = !isDarkMode;
+      const panel = document.getElementById('moderation-assistant-panel');
+      const themeIcon = document.getElementById('theme-icon');
+      
+      if (isDarkMode) {
+        panel.classList.remove('light-mode');
+        themeIcon.textContent = '🌙';
+      } else {
+        panel.classList.add('light-mode');
+        themeIcon.textContent = '☀️';
+      }
+    }
+  };
+
+  function isButtonValid(element) {
+    if (!element) return false;
+    const ariaHidden = element.getAttribute('aria-hidden') === 'true';
+    return !ariaHidden;
+  }
+
+  function clickAll(selector, matchText = null) {
+    const items = document.querySelectorAll(selector);
+    let clicked = 0;
+    
+    for (let item of items) {
+      const ariaHidden = item.getAttribute('aria-hidden') === 'true';
+      if (ariaHidden) continue;
+      
+      if (matchText) {
+        const itemText = (item.innerText || item.textContent || '').trim().toLowerCase();
+        if (!itemText.includes(matchText.toLowerCase())) continue;
+      }
+      
+      try {
+        item.click();
+        clicked++;
+        stats.totalClicks++;
+      } catch(e) {
+        try {
+          const parent = item.closest('[role="listitem"]') || item.closest('[role="menuitem"]');
+          if (parent) {
+            parent.click();
+            clicked++;
+            stats.totalClicks++;
+          }
+        } catch(e2) { }
       }
     }
     
-    console.log(`%c[❌] Giving up on post #${id} after ${RETRY_CONFIG.maxFullRetries} attempts`, CONSOLE_STYLES.errorBold);
-    return false; /* Failed */
+    return clicked;
   }
 
-  /* Smart scroll: scroll until new content appears */
+  async function wait(ms) {
+    await new Promise(r => setTimeout(r, ms));
+  }
+
+  /* Close all open dialogs */
+  async function closeAllDialogs() {
+    const loadingEntry = UILogger.loading('Closing all dialogs');
+    
+    const dialogs = document.querySelectorAll(SELECTORS.dialog);
+    let closedCount = 0;
+    
+    for (let dialog of dialogs) {
+      const closeBtn = dialog.querySelector(SELECTORS.closeButton);
+      if (closeBtn) {
+        try {
+          closeBtn.click();
+          closedCount++;
+        } catch(e) { }
+      }
+    }
+    
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    
+    await wait(1000);
+    
+    UILogger.updateLoading(loadingEntry, `${closedCount} dialogs closed`, true, 'success');
+  }
+
   async function scrollForNewContent() {
-    console.log('%c[📜] Scrolling to load more content...', CONSOLE_STYLES.info);
+    const loadingEntry = UILogger.loading('Scrolling feed');
     
-    const initialHeight = document.body.scrollHeight;
-    let scrollAttempts = 0;
-    let newContentLoaded = false;
-    
-    while (scrollAttempts < SCROLL_CONFIG.maxScrollAttempts && !newContentLoaded) {
-      window.scrollBy({ 
-        top: TIMING.scrollAmount, 
-        behavior: SCROLL_CONFIG.scrollBehavior 
-      });
-      await new Promise(r => setTimeout(r, TIMING.scrollForContent));
+    for (let i = 0; i < SCROLL_CONFIG.continuousScrollAttempts; i++) {
+      if (isStopped) return;
       
-      const newHeight = document.body.scrollHeight;
-      if (newHeight > initialHeight) {
-        newContentLoaded = true;
-        console.log('%c[📜] New content loaded!', CONSOLE_STYLES.success);
-      }
-      
-      scrollAttempts++;
+      window.scrollBy({ top: TIMING.scrollAmount, behavior: SCROLL_CONFIG.scrollBehavior });
+      stats.scrollCount++;
+      await wait(TIMING.scrollForContent);
     }
     
-    if (!newContentLoaded) {
-      console.log('%c[📜] No new content - might be at end', CONSOLE_STYLES.warning);
-    }
-    
-    await new Promise(r => setTimeout(r, TIMING.contentSettle));
+    UILogger.updateLoading(loadingEntry, `Scrolled ${SCROLL_CONFIG.continuousScrollAttempts} times`, true, 'success');
+    await wait(TIMING.contentSettle);
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════════════
-   *                           MAIN PROCESSING LOOP
-   * ═══════════════════════════════════════════════════════════════════════════════════ */
+  async function parallelBatchProcess() {
+    currentCycle++;
+    UILogger.cycle(`Cycle #${currentCycle} started`);
+    
+    UILogger.updateProgress(0);
+    
+    let loadingEntry = UILogger.loading('Finding posts');
+    document.querySelectorAll(SELECTORS.tooltip).forEach(t => t.style.display = 'none');
+    
+    const actionButtons = document.querySelectorAll(SELECTORS.actionsButton);
+    let buttonsClicked = 0;
+    
+    for (let btn of actionButtons) {
+      if (btn.hasAttribute(ATTRIBUTES.processed)) continue;
+      if (!isButtonValid(btn)) continue;
+      
+      try {
+        btn.scrollIntoView({ behavior: 'instant', block: 'center' });
+        await wait(50);
+        btn.click();
+        btn.setAttribute(ATTRIBUTES.processed, 'true');
+        buttonsClicked++;
+        stats.totalClicks++;
+      } catch(e) { }
+    }
+    
+    stats.batchSizes.push(buttonsClicked);
+    if (buttonsClicked > stats.peakBatchSize) stats.peakBatchSize = buttonsClicked;
+    
+    UILogger.updateLoading(loadingEntry, `Found ${buttonsClicked} posts`, true, 'success');
+    UILogger.updateStats(totalProcessed, currentCycle, buttonsClicked, 'ACTIVE');
+    UILogger.updateProgress(14);
+    await wait(TIMING.afterClickAll);
+    
+    loadingEntry = UILogger.loading('Opening report dialogs');
+    const reportClicked = clickAll(SELECTORS.menuItemSpan, 'report');
+    UILogger.updateLoading(loadingEntry, `${reportClicked} dialogs opened`, true, 'success');
+    UILogger.updateProgress(28);
+    await wait(TIMING.betweenSteps);
+    
+    loadingEntry = UILogger.loading('Step 1: Selecting category');
+    const step1Clicked = clickAll(REPORTING_PATH.step1.selector, REPORTING_PATH.step1.text);
+    UILogger.updateLoading(loadingEntry, `Step 1: ${step1Clicked} selected`, true, 'success');
+    UILogger.updateProgress(42);
+    await wait(TIMING.betweenSteps);
+    
+    loadingEntry = UILogger.loading('Step 2: Selecting subcategory');
+    const step2Clicked = clickAll(REPORTING_PATH.step2.selector, REPORTING_PATH.step2.text);
+    UILogger.updateLoading(loadingEntry, `Step 2: ${step2Clicked} selected`, true, 'success');
+    UILogger.updateProgress(56);
+    await wait(TIMING.betweenSteps);
+    
+    loadingEntry = UILogger.loading('Step 3: Selecting reason');
+    const step3Clicked = clickAll(REPORTING_PATH.step3.selector, REPORTING_PATH.step3.text);
+    UILogger.updateLoading(loadingEntry, `Step 3: ${step3Clicked} selected`, true, 'success');
+    UILogger.updateProgress(70);
+    await wait(TIMING.betweenSteps);
+    
+    loadingEntry = UILogger.loading('Submitting reports');
+    const submitClicked = clickAll(SELECTORS.submitButton);
+    UILogger.updateLoading(loadingEntry, `${submitClicked} reports submitted`, true, 'success');
+    UILogger.updateProgress(84);
+    await wait(TIMING.betweenSteps);
+    
+    const nextClicked = clickAll(SELECTORS.nextButton);
+    if (nextClicked > 0) {
+      UILogger.info(`${nextClicked} continuation steps`);
+      await wait(TIMING.betweenSteps);
+    }
+    
+    loadingEntry = UILogger.loading('Completing reports');
+    const doneClicked = clickAll(SELECTORS.doneButton);
+    UILogger.updateLoading(loadingEntry, `${doneClicked} reports completed`, true, 'success');
+    UILogger.updateProgress(100);
+    await wait(TIMING.finalWait);
+    
+    /* CRITICAL: Close all dialogs before proceeding */
+    await closeAllDialogs();
+    await wait(TIMING.dialogCleanup);
+    
+    totalProcessed += buttonsClicked;
+    stats.successCount += buttonsClicked;
+    UILogger.updateStats(totalProcessed, currentCycle, buttonsClicked, 'ACTIVE');
+    
+    if (buttonsClicked > 0) {
+      UILogger.success(`Cycle complete: ${buttonsClicked} posts | Total: ${totalProcessed}`);
+    } else {
+      UILogger.warning('No posts found in cycle');
+    }
+    
+    return buttonsClicked;
+  }
 
   async function processingLoop() {
-    let cycles = 0;
+    UILogger.info('Continuous mode: Running until stopped');
     
-    while (true) {
-      cycles++;
-      console.log(`%c\n[🔄] ═══ CYCLE #${cycles} START ═══`, CONSOLE_STYLES.cycle);
+    while (!isStopped) {
+      const unprocessed = Array.from(document.querySelectorAll(SELECTORS.actionsButton)).filter(btn => {
+        return !btn.hasAttribute(ATTRIBUTES.processed) && isButtonValid(btn);
+      });
       
-      let buttons = Array.from(document.querySelectorAll(
-        `${SELECTORS.actionsButton}:not([${ATTRIBUTES.processed}])`
-      ));
-      buttons = buttons.filter(btn => isElementVisible(btn));
-      
-      if (buttons.length > 0) {
-        console.log(`%c[📋] Found ${buttons.length} visible unprocessed posts`, CONSOLE_STYLES.info);
-        
-        let successCount = 0;
-        for (let i = 0; i < buttons.length; ++i) {
-          console.log(`%c[${i + 1}/${buttons.length}] Processing post...`, CONSOLE_STYLES.infoLight);
-          const success = await processPost(buttons[i], totalProcessed + successCount + 1);
-          if (success) successCount++;
-        }
-        
-        totalProcessed += successCount;
-        
-        console.log(`%c[📊] Cycle #${cycles} | Processed: ${successCount} | Total: ${totalProcessed}`, CONSOLE_STYLES.stats);
-        
-        if (TEST_MODE && totalProcessed >= 1) {
-          console.log('%c[TEST MODE] Stopping after 1 report', CONSOLE_STYLES.error);
-          break;
-        }
-        
-        await scrollForNewContent();
-        
+      if (unprocessed.length > 0) {
+        UILogger.info(`${unprocessed.length} posts found`);
+        await parallelBatchProcess();
       } else {
-        console.log('%c[📋] No visible unprocessed posts found', CONSOLE_STYLES.warning);
-        
+        UILogger.info('Loading more content');
         await scrollForNewContent();
-        
-        buttons = Array.from(document.querySelectorAll(
-          `${SELECTORS.actionsButton}:not([${ATTRIBUTES.processed}])`
-        ));
-        buttons = buttons.filter(btn => isElementVisible(btn));
-        
-        if (buttons.length === 0) {
-          console.log('%c[✓] All posts processed or reached end of feed', CONSOLE_STYLES.success);
-          break;
-        }
+      }
+      
+      await wait(TIMING.betweenCycles);
+      
+      if (TEST_MODE) {
+        UILogger.warning('Test mode - stopping after one cycle');
+        break;
       }
     }
     
-    console.log(`%c\n[🏁] ═══ PROCESSING COMPLETE ═══\n[📊] Total Reports Submitted: ${totalProcessed}`, CONSOLE_STYLES.complete);
+    UILogger.cycle(`Process completed`);
+    UILogger.success(`Total: ${totalProcessed} posts processed`);
+    UILogger.success(`Cycles: ${currentCycle}`);
+    UILogger.updateStats(totalProcessed, currentCycle, 0, 'COMPLETE');
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════════════
-   *                           START EXECUTION
-   * ═══════════════════════════════════════════════════════════════════════════════════ */
-
-  console.log('%c[MODERATION ASSISTANT] 🚀 Starting with enhanced Report detection...', CONSOLE_STYLES.stats);
   processingLoop();
 
 })();
